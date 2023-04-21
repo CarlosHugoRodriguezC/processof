@@ -1,18 +1,33 @@
-import React from "react";
+import React, { useState } from "react";
 import NextLink from "next/link";
 import { Input } from "@/components/shadcn/ui/input";
 import { useForm } from "react-hook-form";
-import { Order } from "@prisma/client";
+import { Order, Stage } from "@prisma/client";
 import { Button } from "@/components/shadcn/ui/button";
 import { api } from "@/utils/api";
+import { StageForm } from "@/components/orders";
+import { GetServerSideProps } from "next";
+import { getSession } from "next-auth/react";
+
+export type OrderForm = Order & {
+  stages: Stage[];
+};
 
 const index = () => {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<Order>({});
+  } = useForm<OrderForm>({});
+  const [stages, setStages] = useState<Partial<Stage>[]>([]);
   const ordersApi = api.orders.createOne.useMutation();
+
+  const handleAddStage = () => {
+    setStages((prev) => [
+      ...prev,
+      { name: `Stage ${stages.length}`, description: "" },
+    ]);
+  };
 
   const onSubmit = (data: Order) => {
     console.log(data);
@@ -60,6 +75,27 @@ const index = () => {
                 </span>
               )}
             </div>
+            {/* Stages form */}
+            <div className="flex flex-col gap-3">
+              {stages.map((stage, index) => (
+                <StageForm
+                  key={index}
+                  stage={stage}
+                  stageIndex={index}
+                  register={register}
+                  errors={errors.stages?.[index]}
+                />
+              ))}
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant={"ghost"}
+                  onClick={handleAddStage}
+                >
+                  Add Stage
+                </Button>
+              </div>
+            </div>
             <div>
               <Button type="submit" className="w-full">
                 Save
@@ -70,6 +106,23 @@ const index = () => {
       </div>
     </>
   );
+};
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getSession(ctx);
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/auth/signin",
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    props: {},
+  };
 };
 
 export default index;

@@ -4,10 +4,7 @@ import NextLink from "next/link";
 import { api } from "@/utils/api";
 import { Order, ProductionLine, User } from "@prisma/client";
 import DataTable, { TableColumn } from "react-data-table-component";
-import { appRouter } from "@/server/api/root";
-import { createServerSideHelpers } from "@trpc/react-query/server";
 import { getSession } from "next-auth/react";
-import { ssgInit } from "@/server/api/ssg-init";
 
 type OrderColumns = Order & {
   productionLine: ProductionLine;
@@ -36,12 +33,7 @@ const ORDER_COLUMNS: TableColumn<OrderColumns>[] = [
   },
 ];
 
-interface Props {
-
-}
-
-const OrdersPage = (props: InferGetServerSidePropsType<GetServerSideProps>) => {
-
+const OrdersPage = () => {
   const ordersApi = api.orders.getAll.useQuery({});
 
   return (
@@ -55,17 +47,33 @@ const OrdersPage = (props: InferGetServerSidePropsType<GetServerSideProps>) => {
   );
 };
 
+// export const getServerSideProps: GetServerSideProps = async (ctx) => {
+//   const session = await getSession(ctx);
+
+//   const ssg = await ssgInit(session);
+
+//   await ssg.orders.getAll.fetch({});
+
+//   return {
+//     props: {
+//         trpcState: ssg.dehydrate(),
+//     },
+//   };
+// };
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const session = await getSession(ctx);
 
-  const ssg = await ssgInit(session);
-  
-  await ssg.orders.getAll.fetch({});
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/auth/signin",
+        permanent: false,
+      },
+    };
+  }
 
   return {
-    props: {
-        trpcState: ssg.dehydrate(),
-    },
+    props: {},
   };
 };
 
